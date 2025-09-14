@@ -21,17 +21,18 @@ CREATE TABLE IF NOT EXISTS teams (
   problem_statement TEXT,
   idea TEXT,
   track_id INTEGER REFERENCES tracks(track_id) ON DELETE SET NULL,
+  panel_id INTEGER REFERENCES panels(panel_id) ON DELETE SET NULL,
   status VARCHAR(32) DEFAULT 'pending', -- accepted, rejected, pending (for elim)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- vit email unique
 CREATE TABLE IF NOT EXISTS users (
   user_id SERIAL PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
-  email VARCHAR(200) NOT NULL UNIQUE,
+  email VARCHAR(200) NOT NULL UNIQUE, -- vit email
   team_id INTEGER REFERENCES teams(team_id) ON DELETE SET NULL,
+  is_leader BOOLEAN DEFAULT FALSE,
   extra_info JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
