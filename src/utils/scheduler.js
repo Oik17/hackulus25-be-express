@@ -4,7 +4,7 @@
  assigned in fcfs
 */
 
-function assignPanelsToTeams(panels, teams) {
+export function assignPanelsToTeams(panels, teams) {
     if (!Array.isArray(panels) || panels.length !== 4) {
         throw new Error('panels must be an array of 4 panel objects');
     }
@@ -82,5 +82,3 @@ function assignPanelsToTeams(panels, teams) {
 
     return assignments;
 }
-
-module.exports = { assignPanelsToTeams };

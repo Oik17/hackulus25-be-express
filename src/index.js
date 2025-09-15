@@ -1,17 +1,11 @@
-const { Pool } = require('pg');
-const dotenv = require('dotenv');
+// src/index.js
+import dotenv from "dotenv";
+import app from "./utils/app.js";
+
 dotenv.config();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
-});
+const PORT = process.env.PORT || 4000;
 
-pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
-
-module.exports = {
-    query: (text, params) => pool.query(text, params),
-    pool
-};
