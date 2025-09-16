@@ -1,4 +1,3 @@
-// src/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import db from "../utils/db.js";
@@ -43,11 +42,11 @@ export function requireSuperAdmin(req, res, next) {
   return next();
 }
 
-/**
- * Check if currently authed admin can access a team.
- * - Superadmin: always allowed
- * - Judge/Admin: only if team.panel_id === admin.panel_id
- */
+/*
+  Check if currently authed admin can access a team.
+  - superadmin: always allowed
+  - judge/admin: only if team.panel_id === admin.panel_id
+*/
 export async function adminCanAccessTeam(req, res, next) {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthenticated" });

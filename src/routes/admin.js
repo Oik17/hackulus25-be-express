@@ -3,7 +3,6 @@ import * as adminCtrl from "../controllers/adminController.js";
 import * as auth from "../middleware/authMiddleware.js";
 const router = Router();
 
-
 router.use(auth.verifyToken);
 router.use(auth.requireAdmin);
 
@@ -22,5 +21,9 @@ router.post('/team/:id/member', auth.requireSuperAdmin, adminCtrl.addTeamMember)
 router.get('/submissions', adminCtrl.listSubmissions);
 router.get('/submission/:id', adminCtrl.getSubmissionDetail);
 router.post('/submission/:id/review', adminCtrl.addReviewToSubmission);
+
+// submission window manage (superadmin)
+router.get('/submission-windows', auth.requireSuperAdmin, adminCtrl.listSubmissionWindows);
+router.post('/submission-window', auth.requireSuperAdmin, adminCtrl.upsertSubmissionWindow);
 
 export default router;

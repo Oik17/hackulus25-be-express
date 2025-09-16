@@ -1,4 +1,3 @@
-// src/models/adminModel.js
 import pool from "../utils/db.js";
 
 export async function findAdminByEmail(email) {

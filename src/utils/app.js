@@ -1,4 +1,4 @@
-// src/utils/app.js
+
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -12,12 +12,12 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Handle uploads folder
+// uploads folder
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -31,7 +31,6 @@ if (!fs.existsSync(uploadPath)) {
 
 app.use("/uploads", express.static(uploadPath));
 
-// Routes
 app.get("/", (req, res) => {
   res.json({ message: "hackulus backend running" });
 });

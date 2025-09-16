@@ -51,14 +51,17 @@ CREATE TABLE IF NOT EXISTS submissions (
   submission_id SERIAL PRIMARY KEY,
   team_id INTEGER REFERENCES teams(team_id) ON DELETE CASCADE,
   submitted_by INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
-  type VARCHAR(50) NOT NULL, -- review, final
+  type VARCHAR(50) NOT NULL,    -- review1, review2, final, etc.
   title VARCHAR(255),
   description TEXT,
   link_url TEXT,
   file_url TEXT,
-  status VARCHAR(50) DEFAULT 'pending', -- submitted, pending
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  status VARCHAR(50) DEFAULT 'pending',   -- submitted, pending
+  review_round SMALLINT DEFAULT 0,        -- 0 is no review, 1 = review1, 2 = review2
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+
 
 CREATE TABLE IF NOT EXISTS reviews (
   review_id SERIAL PRIMARY KEY,
