@@ -1,5 +1,7 @@
 import db from "../utils/db.js";
 import * as scheduler from "../utils/scheduler.js";
+import { listWindows, upsertWindow, getWindowByName } from "../models/submissionWindowModel.js";
+
 
 async function getMembers(team_id) {
   const r = await db.query(
@@ -307,6 +309,31 @@ export const addReviewToSubmission = async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error("addReviewToSubmission err", err);
+    res.status(500).json({ error: "server error" });
+  }
+};
+
+
+export const listSubmissionWindows = async (req, res) => {
+  try {
+    const rows = await listWindows();
+    res.json({ windows: rows });
+  } catch (err) {
+    console.error("listSubmissionWindows err", err);
+    res.status(500).json({ error: "server error" });
+  }
+};
+
+export const upsertSubmissionWindow = async (req, res) => {
+  try {
+    const { name, open, start_at, end_at } = req.body;
+    if (!name) return res.status(400).json({ error: "name required" });
+    const allowed = ["review1", "review2", "final"];
+    if (!allowed.includes(name)) return res.status(400).json({ error: "invalid name" });
+    const row = await upsertWindow({ name, open: !!open, start_at: start_at || null, end_at: end_at || null });
+    res.json({ window: row });
+  } catch (err) {
+    console.error("upsertSubmissionWindow err", err);
     res.status(500).json({ error: "server error" });
   }
 };
