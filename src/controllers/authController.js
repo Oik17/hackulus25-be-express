@@ -1,4 +1,3 @@
-// src/controllers/authController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -14,9 +13,7 @@ function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 }
 
-/**
- * Admin registration (protected in production or used once).
- */
+// admin reg
 export async function adminRegister(req, res) {
   try {
     const { name, email, password, role, panel_id } = req.body;
@@ -34,9 +31,7 @@ export async function adminRegister(req, res) {
   }
 }
 
-/**
- * Admin login
- */
+// admin login
 export async function adminLogin(req, res) {
   try {
     const { email, password } = req.body;
@@ -56,10 +51,7 @@ export async function adminLogin(req, res) {
   }
 }
 
-/**
- * Regular user signup (no password in your schema; if you want password-based users,
- * add a password_hash column to users table. For now we'll register users without passwords).
- */
+// IMP - add pwd hash functionality here, and in schema
 export async function userSignup(req, res) {
   try {
     const { name, email, team_id, is_leader, extra_info } = req.body;
@@ -76,9 +68,7 @@ export async function userSignup(req, res) {
   }
 }
 
-/**
- * Logout (blacklist token)
- */
+// toekn blacklist
 export async function logout(req, res) {
   try {
     const authHeader = req.headers.authorization;

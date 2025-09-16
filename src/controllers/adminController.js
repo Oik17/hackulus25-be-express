@@ -1,7 +1,6 @@
 import db from "../utils/db.js";
 import * as scheduler from "../utils/scheduler.js";
 
-// Helper to fetch team members
 async function getMembers(team_id) {
   const r = await db.query(
     "SELECT user_id AS member_id, name, email, is_leader, extra_info, created_at FROM users WHERE team_id=$1 ORDER BY user_id",

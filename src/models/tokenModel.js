@@ -1,4 +1,3 @@
-// src/models/tokenModel.js
 import pool from "../utils/db.js";
 
 export async function blacklistToken(token) {
