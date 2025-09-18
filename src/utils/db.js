@@ -1,12 +1,24 @@
 import pkg from "pg";
 import dotenv from "dotenv";
+import Joi from "joi";
 
 dotenv.config();
 
 const { Pool } = pkg;
 
+// env validate
+const envSchema = Joi.object({
+  DATABASE_URL: Joi.string().uri().required()
+}).unknown(true); // allow other env vars
+
+const { error, value } = envSchema.validate(process.env);
+if (error) {
+  console.error("Environment validation error:", error.details.map(d => d.message).join(", "));
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: value.DATABASE_URL,
 });
 
 pool.on("error", (err) => {

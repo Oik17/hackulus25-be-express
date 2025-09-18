@@ -1,6 +1,7 @@
 import db from "../utils/db.js";
 import * as scheduler from "../utils/scheduler.js";
 import { listWindows, upsertWindow, getWindowByName } from "../models/submissionWindowModel.js";
+import Joi from 'joi';
 
 
 async function getMembers(team_id) {
@@ -25,6 +26,10 @@ export const listPanels = async (req, res) => {
 // GET /admin/panel/:id/teams
 export const getPanelTeams = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
     const panelId = req.params.id;
     const teams = (
       await db.query(
@@ -42,6 +47,10 @@ export const getPanelTeams = async (req, res) => {
 // POST /admin/panel/assign (superadmin only)
 export const assignPanelManual = async (req, res) => {
   try {
+    const bodySchema = Joi.object({ team_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required(), panel_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const { error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (bodyErr) return res.status(400).json({ error: bodyErr.details.map(d => d.message).join(', ') });
+
     const { team_id, panel_id } = req.body;
     if (!team_id || !panel_id) {
       return res.status(400).json({ error: "team_id and panel_id required" });
@@ -103,6 +112,10 @@ export const runAutoPanelAssignment = async (req, res) => {
 // GET /admin/teams
 export const listTeams = async (req, res) => {
   try {
+    const querySchema = Joi.object({ track_id: Joi.string().pattern(/^\d+$/).optional(), panel_id: Joi.string().pattern(/^\d+$/).optional(), status: Joi.string().optional() });
+    const { error: queryErr } = querySchema.validate(req.query, { abortEarly: false, allowUnknown: true });
+    if (queryErr) return res.status(400).json({ error: queryErr.details.map(d => d.message).join(', ') });
+
     const { track_id, panel_id, status } = req.query;
     const conditions = [];
     const params = [];
@@ -140,6 +153,10 @@ export const listTeams = async (req, res) => {
 // GET /admin/team/:id
 export const getTeamDetail = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
     const teamId = req.params.id;
     const team = (
       await db.query("SELECT * FROM teams WHERE team_id=$1", [teamId])
@@ -164,6 +181,15 @@ export const getTeamDetail = async (req, res) => {
 // POST /admin/team/:id/status
 export const setTeamStatus = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const bodySchema = Joi.object({ status: Joi.string().valid('accepted', 'rejected', 'pending', 'shortlisted').required() });
+
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
+    const { error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (bodyErr) return res.status(400).json({ error: bodyErr.details.map(d => d.message).join(', ') });
+
     const teamId = req.params.id;
     const { status } = req.body;
     if (!["accepted", "rejected", "pending", "shortlisted"].includes(status)) {
@@ -183,6 +209,15 @@ export const setTeamStatus = async (req, res) => {
 // POST /admin/team/:id/member
 export const addTeamMember = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const bodySchema = Joi.object({ name: Joi.string().min(1).required(), email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required(), is_leader: Joi.boolean().optional(), extra_info: Joi.any().optional() });
+
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
+    const { error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (bodyErr) return res.status(400).json({ error: bodyErr.details.map(d => d.message).join(', ') });
+
     const teamId = req.params.id;
     const { name, email, is_leader, extra_info } = req.body;
     if (!name || !email)
@@ -208,6 +243,10 @@ export const addTeamMember = async (req, res) => {
 // GET /admin/submissions
 export const listSubmissions = async (req, res) => {
   try {
+    const querySchema = Joi.object({ type: Joi.string().optional(), team_id: Joi.string().pattern(/^\d+$/).optional(), panel_id: Joi.string().pattern(/^\d+$/).optional(), status: Joi.string().optional() });
+    const { error: queryErr } = querySchema.validate(req.query, { abortEarly: false, allowUnknown: true });
+    if (queryErr) return res.status(400).json({ error: queryErr.details.map(d => d.message).join(', ') });
+
     const { type, team_id, panel_id, status } = req.query;
     const conditions = [];
     const params = [];
@@ -250,6 +289,10 @@ export const listSubmissions = async (req, res) => {
 // GET /admin/submission/:id
 export const getSubmissionDetail = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
     const id = req.params.id;
     const sub = (
       await db.query(
@@ -275,6 +318,15 @@ export const getSubmissionDetail = async (req, res) => {
 // POST /admin/submission/:id/review
 export const addReviewToSubmission = async (req, res) => {
   try {
+    const paramsSchema = Joi.object({ id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).required() });
+    const bodySchema = Joi.object({ score: Joi.number().min(0).max(100).optional().allow(null), comments: Joi.string().allow('', null).optional(), set_team_status: Joi.string().valid('accepted', 'rejected', 'pending', 'shortlisted').optional() });
+
+    const { error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, allowUnknown: true });
+    if (paramsErr) return res.status(400).json({ error: paramsErr.details.map(d => d.message).join(', ') });
+
+    const { error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (bodyErr) return res.status(400).json({ error: bodyErr.details.map(d => d.message).join(', ') });
+
     const submission_id = req.params.id;
     const { score, comments, set_team_status } = req.body;
     const user = req.user;
@@ -326,6 +378,10 @@ export const listSubmissionWindows = async (req, res) => {
 
 export const upsertSubmissionWindow = async (req, res) => {
   try {
+    const bodySchema = Joi.object({ name: Joi.string().valid('review1', 'review2', 'final').required(), open: Joi.boolean().optional(), start_at: Joi.date().iso().allow(null).optional(), end_at: Joi.date().iso().allow(null).optional() });
+    const { error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (bodyErr) return res.status(400).json({ error: bodyErr.details.map(d => d.message).join(', ') });
+
     const { name, open, start_at, end_at } = req.body;
     if (!name) return res.status(400).json({ error: "name required" });
     const allowed = ["review1", "review2", "final"];

@@ -7,6 +7,8 @@ import { findAdminByEmail, createAdmin } from "../models/adminModel.js";
 import { findUserByEmail, createUser } from "../models/userModel.js";
 import { blacklistToken } from "../models/tokenModel.js";
 
+import Joi from 'joi';
+
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
 
 function signToken(payload) {
@@ -16,6 +18,16 @@ function signToken(payload) {
 // admin reg
 export async function adminRegister(req, res) {
   try {
+    const schema = Joi.object({
+      name: Joi.string().allow('', null).optional(),
+      email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required(),
+      password: Joi.string().min(6).required(),
+      role: Joi.string().optional(),
+      panel_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).optional()
+    });
+    const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
+
     const { name, email, password, role, panel_id } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
 
@@ -34,6 +46,13 @@ export async function adminRegister(req, res) {
 // admin login
 export async function adminLogin(req, res) {
   try {
+    const schema = Joi.object({
+      email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required(),
+      password: Joi.string().required()
+    });
+    const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
+
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
 
@@ -54,6 +73,16 @@ export async function adminLogin(req, res) {
 // IMP - add pwd hash functionality here, and in schema
 export async function userSignup(req, res) {
   try {
+    const schema = Joi.object({
+      name: Joi.string().min(1).required(),
+      email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required(),
+      team_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).optional(),
+      is_leader: Joi.boolean().optional(),
+      extra_info: Joi.any().optional()
+    });
+    const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
+
     const { name, email, team_id, is_leader, extra_info } = req.body;
     if (!email || !name) return res.status(400).json({ message: "Name and email required" });
 
@@ -68,9 +97,41 @@ export async function userSignup(req, res) {
   }
 }
 
+// user login by email only
+export async function userLogin(req, res) {
+  try {
+    const schema = Joi.object({ email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required() });
+    const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
+
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email required" });
+
+    const user = await findUserByEmail(email);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const token = signToken({
+      id: user.user_id,
+      email: user.email,
+      role: "user",
+      team_id: user.team_id,
+      is_leader: user.is_leader
+    });
+
+    return res.json({ token, expiresIn: process.env.JWT_EXPIRES_IN, user: { user_id: user.user_id, email: user.email, team_id: user.team_id, is_leader: user.is_leader } });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
 // toekn blacklist
 export async function logout(req, res) {
   try {
+    const headersSchema = Joi.object({ authorization: Joi.string().pattern(/^Bearer\s+\S+$/).required() });
+    const { error } = headersSchema.validate(req.headers, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
+
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(400).json({ message: "No token provided" });
     const token = authHeader.split(" ")[1];
