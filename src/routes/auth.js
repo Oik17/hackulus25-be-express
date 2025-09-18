@@ -50,8 +50,8 @@ router.post("/user/signup", async (req, res, next) => {
             .messages({
                 "string.pattern.base": "Password must be in the form ddLLLdddd (d-digit, L-capital letter)"
             }),
-        team_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).optional(),
-        is_leader: Joi.boolean().optional(),
+    team_name: Joi.string().min(1).required(),        // mandatory team name
+    track_id: Joi.number().integer().required(),        is_leader: Joi.boolean().optional(),
         extra_info: Joi.any().optional()
     });
 
