@@ -1,14 +1,30 @@
+import Joi from "joi";
+
 /*
  assign teams to panels based on track
  track with most teams always assigned to panel 4 coz just 1 team
  assigned in fcfs
 */
-
 export function assignPanelsToTeams(panels, teams) {
-    if (!Array.isArray(panels) || panels.length !== 4) {
-        throw new Error('panels must be an array of 4 panel objects');
-    }
-    if (!Array.isArray(teams)) throw new Error('teams must be an array');
+    // joi schemas
+    const panelSchema = Joi.object({
+        panel_id: Joi.number().required()
+    });
+
+    const teamSchema = Joi.object({
+        team_id: Joi.number().required(),
+        track_id: Joi.number().required()
+    });
+
+    const panelsSchema = Joi.array().items(panelSchema).length(4).required();
+    const teamsSchema = Joi.array().items(teamSchema).required();
+
+    // Validate
+    const { error: panelsError } = panelsSchema.validate(panels);
+    if (panelsError) throw new Error(`Invalid panels input: ${panelsError.message}`);
+
+    const { error: teamsError } = teamsSchema.validate(teams);
+    if (teamsError) throw new Error(`Invalid teams input: ${teamsError.message}`);
 
     // panel ids
     const pIds = panels.map(p => p.panel_id);

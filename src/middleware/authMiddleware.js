@@ -1,15 +1,39 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import db from "../utils/db.js";
+import Joi from "joi";
 
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
 
+// schema for auth header
+const authHeaderSchema = Joi.string()
+  .pattern(/^Bearer\s+\S+$/)
+  .required()
+  .messages({
+    "string.pattern.base": "Authorization header must be in format: Bearer <token>",
+    "any.required": "Authorization header is required",
+  });
+
+// schema for team_id validation
+const teamIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .required()
+  .messages({
+    "number.base": "team_id must be a number",
+    "number.integer": "team_id must be an integer",
+    "number.positive": "team_id must be positive",
+    "any.required": "team_id is required",
+  });
+
 export function verifyToken(req, res, next) {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing or invalid auth header" });
+
+  const { error } = authHeaderSchema.validate(header);
+  if (error) {
+    return res.status(401).json({ error: error.details[0].message });
   }
 
   const token = header.split(" ")[1];
@@ -59,7 +83,11 @@ export async function adminCanAccessTeam(req, res, next) {
         .json({ error: "Admin token missing panel_id" });
 
     const teamId = req.params.id || req.body.team_id || req.query.team_id;
-    if (!teamId) return res.status(400).json({ error: "team id required" });
+
+    const { error } = teamIdSchema.validate(teamId);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
 
     const result = await db.query(
       "SELECT panel_id FROM teams WHERE team_id=$1",

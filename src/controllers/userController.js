@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import Joi from 'joi';
 import { getSubmissionsByTeam, createSubmission } from "../models/submissionModel.js";
 import { getWindowByName } from "../models/submissionWindowModel.js";
 import db from "../utils/db.js";
@@ -28,6 +29,14 @@ function isWindowOpenSync(win) {
     }
     return false;
 }
+
+// Joi schemas for submissions
+const submissionBodySchema = Joi.object({
+    type: Joi.string().valid('review1', 'review2', 'final').required(),
+    link_url: Joi.string().uri().optional().allow(null, ''),
+    title: Joi.string().min(1).max(300).optional(),
+    description: Joi.string().max(1000).optional().allow(null, ''),
+});
 
 export const getUsersHome = async (req, res) => {
     try {
@@ -77,7 +86,7 @@ export const listMySubmissions = async (req, res) => {
         // get original filename from url
         const submissionsWithOriginalName = subs.map(submission => ({
             ...submission,
-            original_filename: submission.file_url.split('_').slice(2).join('_')
+            original_filename: submission.file_url ? submission.file_url.split('_').slice(2).join('_') : null
         }));
 
         res.json({ submissions: submissionsWithOriginalName });
@@ -94,6 +103,10 @@ export const submitReview = [
             const user = req.currentUser;
             if (!user || !user.team_id) return res.status(400).json({ error: "user must belong to a team" });
             if (!user.is_leader) return res.status(403).json({ error: "leader only" });
+
+            // validate body
+            const { error } = submissionBodySchema.validate({ ...req.body, type: req.body.type }, { abortEarly: false, allowUnknown: true });
+            if (error) return res.status(400).json({ error: error.details.map(d => d.message).join(', ') });
 
             const { type } = req.body;
             if (!["review1", "review2"].includes(type)) return res.status(400).json({ error: "invalid review type" });
@@ -135,6 +148,10 @@ export const submitFinal = [
             const user = req.currentUser;
             if (!user || !user.team_id) return res.status(400).json({ error: "user must belong to a team" });
             if (!user.is_leader) return res.status(403).json({ error: "leader only" });
+
+            // validate body
+            const { error } = submissionBodySchema.validate({ ...req.body, type: 'final' }, { abortEarly: false, allowUnknown: true });
+            if (error) return res.status(400).json({ error: error.details.map(d => d.message).join(', ') });
 
             const window = await getWindowByName("final");
             if (!isWindowOpenSync(window)) return res.status(403).json({ error: "final submissions are closed" });

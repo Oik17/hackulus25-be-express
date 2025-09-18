@@ -1,4 +1,7 @@
+import Joi from "joi";
 import { findUserById } from "../models/userModel.js";
+
+const userIdSchema = Joi.number().integer().positive().required();
 
 export async function ensureUserExists(req, res, next) {
     const payload = req.user;
@@ -6,6 +9,12 @@ export async function ensureUserExists(req, res, next) {
 
     const userId = payload.user_id || payload.id || payload.uid;
     if (!userId) return res.status(400).json({ error: "user id missing in token" });
+
+    // userId format
+    const { error } = userIdSchema.validate(userId);
+    if (error) {
+        return res.status(400).json({ error: "Invalid user id", details: error.details });
+    }
 
     const user = await findUserById(userId);
     if (!user) return res.status(404).json({ error: "user not found" });
