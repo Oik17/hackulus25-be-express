@@ -73,29 +73,50 @@ export async function adminLogin(req, res) {
 // IMP - add pwd hash functionality here, and in schema
 export async function userSignup(req, res) {
   try {
+    // Updated schema to match model
     const schema = Joi.object({
       name: Joi.string().min(1).required(),
-      email: Joi.string().email().pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/).required(),
-      team_id: Joi.alternatives().try(Joi.number().integer(), Joi.string().pattern(/^\d+$/)).optional(),
+      email: Joi.string()
+        .email()
+        .pattern(/^[^@]+@(vitstudent\.ac\.in|vit\.ac\.in)$/)
+        .required(),
+      password: Joi.string()
+        .pattern(/^\d{2}[A-Z]{3}\d{4}$/)
+        .required()
+        .messages({
+          "string.pattern.base": "Password must be in the form ddLLLdddd (d-digit, L-capital letter)"
+        }),
+      team_name: Joi.string().min(1).required(),
+      track_id: Joi.number().integer().required(),
       is_leader: Joi.boolean().optional(),
       extra_info: Joi.any().optional()
     });
-    const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
-    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(', ') });
 
-    const { name, email, team_id, is_leader, extra_info } = req.body;
-    if (!email || !name) return res.status(400).json({ message: "Name and email required" });
+    const { error, value } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
+    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(", ") });
 
-    const existing = await findUserByEmail(email);
+    const existing = await findUserByEmail(value.email);
     if (existing) return res.status(400).json({ message: "Email already registered" });
 
-    const user = await createUser({ name, email, team_id: team_id || null, is_leader: !!is_leader, extra_info: extra_info || null });
+    const user = await createUser({
+        name: value.name,
+        email: value.email,
+        password: value.password,   // must not be undefined
+        team_name: value.team_name,
+        track_id: value.track_id,
+        is_leader: value.is_leader || false,
+        extra_info: value.extra_info || null
+});
+
+
     return res.status(201).json({ message: "User created", user: { user_id: user.user_id, email: user.email } });
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
 }
+
 
 // user login by email only
 export async function userLogin(req, res) {
