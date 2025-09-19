@@ -26,13 +26,6 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
 // middleware
 app.use(cors());
 app.use(express.json());
