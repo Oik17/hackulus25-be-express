@@ -18,7 +18,7 @@ router.get("/submission/:id", adminCtrl.getSubmissionDetail);
 
 // POST with joi
 
-// assign panel manually
+// assign panel manually, requires a JSON input with panel_id and team_id
 router.post("/panel/assign", auth.requireSuperAdmin, async (req, res, next) => {
   const schema = Joi.object({
     panel_id: Joi.alternatives()

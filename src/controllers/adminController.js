@@ -102,14 +102,14 @@ export const runAutoPanelAssignment = async (req, res) => {
     const panelsRes = await db.query(
       "SELECT panel_id, name, track_id FROM panels ORDER BY panel_id"
     );
-    const panels = panelsRes.rows;
+    const panels = panelsRes.rows.map(({ panel_id }) => ({ panel_id }));
     if (!panels.length)
       return res.status(400).json({ error: "no panels defined" });
 
     const teamsRes = await db.query(
       "SELECT team_id, track_id FROM teams ORDER BY created_at ASC"
     );
-    const teams = teamsRes.rows;
+    const teams = teamsRes.rows.map(({ team_id, track_id }) => ({ team_id, track_id }));
 
     const assignments = scheduler.assignPanelsToTeams(panels, teams);
 
