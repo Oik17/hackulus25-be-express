@@ -6,3 +6,6 @@ uploads/
 
 *.log
 .DS_Store
+
+# Sentry Config File
+.sentryclirc

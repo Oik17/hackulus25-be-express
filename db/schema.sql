@@ -55,8 +55,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   type VARCHAR(50) NOT NULL,    -- review1, review2, final, etc.
   title VARCHAR(255),
   description TEXT,
-  link_url TEXT,
-  file_url TEXT,
+  links JSONB,
   status VARCHAR(50) DEFAULT 'pending',   -- submitted, pending
   review_round SMALLINT DEFAULT 0,        -- 0 is no review, 1 = review1, 2 = review2
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -78,3 +77,18 @@ CREATE TABLE IF NOT EXISTS token_blacklist (
     token TEXT NOT NULL,
     blacklisted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS event_status (
+  id SERIAL PRIMARY KEY,
+  current_phase VARCHAR(100) NOT NULL DEFAULT 'Participants reach'
+);
+
+INSERT INTO event_status (id, current_phase) VALUES (1, 'Participants reach')
+ON CONFLICT (id) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_team_id ON submissions(team_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_submission_id ON reviews(submission_id);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_admins_email ON admins(email);
