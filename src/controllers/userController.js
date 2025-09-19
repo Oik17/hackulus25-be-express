@@ -6,6 +6,8 @@ import Redis from "ioredis";
 import {
   getSubmissionsByTeam,
   createSubmission,
+  getSubmissionById,
+  updateSubmission,
 } from "../models/submissionModel.js";
 import { getWindowByName } from "../models/submissionWindowModel.js";
 import db from "../utils/db.js";

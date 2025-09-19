@@ -13,10 +13,10 @@ export const submissionSchema = Joi.object({
   title: Joi.string().allow("", null).optional(),
   description: Joi.string().allow("", null).optional(),
   // UPDATE the schema to validate a 'links' object
-  links: Joi.object()
-    .pattern(Joi.string(), Joi.string().uri().allow("", null))
-    .optional()
-    .allow(null),
+  links: Joi.object({
+  link_url: Joi.string().uri().allow("", null),
+  file_url: Joi.string().uri().allow("", null),
+}).optional().allow(null),
   status: Joi.string()
     .valid("submitted", "pending", "approved", "rejected")
     .optional(),
@@ -32,6 +32,7 @@ export async function createSubmission(submissionData) {
     );
 
   // Destructure 'links' instead of link_url/file_url
+  // Create
   const {
     team_id,
     submitted_by = null,
@@ -43,11 +44,20 @@ export async function createSubmission(submissionData) {
   } = value;
 
   const res = await pool.query(
-    // Use the 'links' column in the query
-    `INSERT INTO submissions (team_id, submitted_by, type, title, description, links, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [team_id, submitted_by, type, title, description, links, status]
+    `INSERT INTO submissions (team_id, submitted_by, type, title, description, link_url, file_url, status)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [
+      team_id,
+      submitted_by,
+      type,
+      title,
+      description,
+      links?.link_url || null,
+      links?.file_url || null,
+      status,
+    ]
   );
+
   return res.rows[0];
 }
 
@@ -65,14 +75,21 @@ export async function updateSubmission(submission_id, submissionData) {
 
   const res = await pool.query(
     `UPDATE submissions 
-         SET 
-            title = $1, 
-            description = $2, 
-            links = $3, 
-            status = $4, 
-            updated_at = now()
-         WHERE submission_id = $5 RETURNING *`,
-    [title, description, links, status || "submitted", submission_id]
+    SET title = $1, 
+        description = $2, 
+        link_url = $3, 
+        file_url = $4,
+        status = $5, 
+        updated_at = now()
+    WHERE submission_id = $6 RETURNING *`,
+    [
+      title,
+      description,
+      links?.link_url || null,
+      links?.file_url || null,
+      status || "submitted",
+      submission_id,
+    ]
   );
   return res.rows[0];
 }
