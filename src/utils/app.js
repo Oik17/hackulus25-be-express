@@ -21,7 +21,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-const app = express();
+export const app = express();
 
 app.use(helmet());
 app.use(compression());

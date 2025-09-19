@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import Joi from "joi";
 import app from "./utils/app.js";
+import cors from "cors";
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ if (error) {
 }
 
 const PORT = env.PORT;
+
+app.use(cors());
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
