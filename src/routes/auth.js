@@ -64,11 +64,13 @@ router.post("/user/signup", async (req, res, next) => {
 // user login
 router.post("/user/login", async (req, res, next) => {
     const schema = Joi.object({
-        email: Joi.string().email().required()
+        email: Joi.string().email().required(),
+        password: Joi.string().min(6).required() // add password validation
     });
 
     const { error } = schema.validate(req.body, { abortEarly: false, allowUnknown: true });
-    if (error) return res.status(400).json({ message: error.details.map(d => d.message).join(", ") });
+    if (error) 
+        return res.status(400).json({ message: error.details.map(d => d.message).join(", ") });
 
     return userLogin(req, res, next);
 });
