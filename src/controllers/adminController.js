@@ -604,7 +604,22 @@ export const setHackathonPhase = async (req, res) => {
         upsertWindow({ name: "final", open: false }),
       ]);
     }
-
+    const stream = redis.scanStream({
+      match: "user_home:*",
+      count: 100,
+    });
+    stream.on("data", (keys) => {
+      if (keys.length) {
+        const pipeline = redis.pipeline();
+        keys.forEach((key) => {
+          pipeline.del(key);
+        });
+        pipeline.exec();
+      }
+    });
+    stream.on("end", () => {
+      console.log("All user_home caches have been invalidated.");
+    });
     res.json({ ok: true, phase: result.rows[0].current_phase });
   } catch (err) {
     console.error("setHackathonPhase err", err);

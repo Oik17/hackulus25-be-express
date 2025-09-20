@@ -98,7 +98,7 @@ export const getUsersHome = async (req, res) => {
       },
       currentPhase,
     };
-    await redis.set(cacheKey, JSON.stringify(responseData), "EX", 3600);
+    await redis.set(cacheKey, JSON.stringify(responseData), "EX", 60);
     res.json(responseData);
   } catch (err) {
     console.error("getUsersHome err", err);
