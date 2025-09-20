@@ -40,13 +40,13 @@ function isWindowOpenSync(win) {
 
 // Joi schemas for submissions
 const submissionBodySchema = Joi.object({
-  type: Joi.string().valid("review1", "review2", "final").required(),
-  title: Joi.string().min(3).max(100).optional(),
-  description: Joi.string().min(10).max(1000).optional().allow(null, ""),
-  link_url: Joi.string().uri().optional().allow(null, ""), // For idea form's presentation link
-  github_link: Joi.string().uri().optional().allow(null, ""),
-  figma_link: Joi.string().uri().optional().allow(null, ""),
-  presentation_link: Joi.string().uri().optional().allow(null, ""), // For project form
+  type: Joi.string().valid("review1", "review2", "final"),
+  title: Joi.string().min(3).max(100),
+  description: Joi.string().min(10).max(1000),
+  links: Joi.object()
+    .pattern(Joi.string(), Joi.string().uri().allow("", null))
+    .optional()
+    .allow(null),
 }).unknown(true);
 
 export const getUsersHome = async (req, res) => {
@@ -133,23 +133,15 @@ export const submitReview = [
     try {
       const user = req.currentUser;
       if (!user || !user.team_id)
-        return res.status(400).json({ error: "user must belong to a team" });
+        return res.status(400).json({ error: "User must belong to a team" });
       if (!user.is_leader)
-        return res.status(403).json({ error: "leader only" });
-
-      // validate body
-      const { error } = submissionBodySchema.validate(
-        { ...req.body, type: req.body.type },
-        { abortEarly: false, allowUnknown: true }
-      );
-      if (error)
         return res
-          .status(400)
-          .json({ error: error.details.map((d) => d.message).join(", ") });
+          .status(403)
+          .json({ error: "Only the team leader can submit" });
 
       const { type } = req.body;
       if (!["review1", "review2"].includes(type))
-        return res.status(400).json({ error: "invalid review type" });
+        return res.status(400).json({ error: "Invalid review type" });
 
       const window = await getWindowByName(type);
       if (!isWindowOpenSync(window))
@@ -157,23 +149,20 @@ export const submitReview = [
           .status(403)
           .json({ error: `${type} submissions are closed` });
 
-      let file_url = null;
-      if (req.file) {
-        file_url = `/uploads/${req.file.filename}`;
-      }
+      const { title, description, links } = req.body;
 
-      const links = {};
-      if (req.body.link_url) links.presentation = req.body.link_url;
-      if (req.file) links.file = `/uploads/${req.file.filename}`;
+      const finalLinks = links || {};
+      if (req.file) {
+        finalLinks.file = `/uploads/${req.file.filename}`;
+      }
 
       const created = await createSubmission({
         team_id: user.team_id,
         submitted_by: user.user_id,
-        type: req.body.type,
-        title: req.body.title || `${req.body.type} submission`,
-        description: req.body.description || null,
-        links: links, // Pass the links object
-        status: "submitted",
+        type,
+        title,
+        description,
+        links: finalLinks,
       });
       res.status(201).json({ submission: created });
     } catch (err) {
@@ -189,44 +178,30 @@ export const submitFinal = [
     try {
       const user = req.currentUser;
       if (!user || !user.team_id)
-        return res.status(400).json({ error: "user must belong to a team" });
+        return res.status(400).json({ error: "User must belong to a team" });
       if (!user.is_leader)
-        return res.status(403).json({ error: "leader only" });
-
-      // validate body
-      const { error } = submissionBodySchema.validate(
-        { ...req.body, type: "final" },
-        { abortEarly: false, allowUnknown: true }
-      );
-      if (error)
         return res
-          .status(400)
-          .json({ error: error.details.map((d) => d.message).join(", ") });
+          .status(403)
+          .json({ error: "Only the team leader can submit" });
 
       const window = await getWindowByName("final");
       if (!isWindowOpenSync(window))
-        return res.status(403).json({ error: "final submissions are closed" });
+        return res.status(403).json({ error: "Final submissions are closed" });
 
-      let file_url = null;
-      if (req.file) file_url = `/uploads/${req.file.filename}`;
+      const { title, description, links } = req.body;
 
-      const links = {};
-
-      const { title, description, presentation_link, github_link, figma_link } =
-        req.body;
-      if (presentation_link) links.presentation_link = presentation_link;
-      if (github_link) links.github_link = github_link;
-      if (figma_link) links.figma_link = figma_link;
-      if (req.file) links.file = `/uploads/${req.file.filename}`;
+      const finalLinks = links || {};
+      if (req.file) {
+        finalLinks.file = `/uploads/${req.file.filename}`;
+      }
 
       const created = await createSubmission({
         team_id: user.team_id,
         submitted_by: user.user_id,
         type: "final",
-        title: title || "final submission",
-        description: description || null,
-        links: links, // Pass the links object
-        status: "submitted",
+        title,
+        description,
+        links: finalLinks,
       });
       res.status(201).json({ submission: created });
     } catch (err) {
@@ -237,58 +212,36 @@ export const submitFinal = [
 ];
 
 export const modifySubmission = [
-  upload.single("file"), // Keep multer middleware to handle potential file uploads
+  upload.single("file"),
   async (req, res) => {
     try {
       const user = req.currentUser;
-      const submission_id = req.params.id;
+      const { id: submission_id } = req.params;
 
-      if (!user || !user.team_id) {
-        return res.status(400).json({ error: "User must belong to a team" });
-      }
-      if (!user.is_leader) {
-        return res
-          .status(403)
-          .json({ error: "Only the team leader can modify submissions" });
+      if (!user || !user.team_id || !user.is_leader) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
-      // Verify this submission belongs to the user's team
       const existingSubmission = await getSubmissionById(submission_id);
       if (!existingSubmission || existingSubmission.team_id !== user.team_id) {
         return res.status(404).json({
-          error:
-            "Submission not found or you do not have permission to edit it.",
+          error: "Submission not found or you do not have permission.",
         });
       }
 
-      // Validate body
-      const { error } = submissionBodySchema.validate(req.body, {
-        abortEarly: false,
-        allowUnknown: true,
-      });
-      if (error)
-        return res
-          .status(400)
-          .json({ error: error.details.map((d) => d.message).join(", ") });
+      const { title, description, links } = req.body;
 
-      let file_url = existingSubmission.file_url; // Default to old file
+      const finalLinks = { ...existingSubmission.links, ...links };
       if (req.file) {
-        file_url = `/uploads/${req.file.filename}`; // Update if a new file is uploaded
+        finalLinks.file = `/uploads/${req.file.filename}`;
       }
 
-      const links = { ...existingSubmission.links };
-      if (req.body.presentation_link)
-        links.presentation = req.body.presentation_link; // Use correct key
-      if (req.body.github_link) links.github = req.body.github_link; // Use correct key
-      if (req.body.figma_link) links.figma = req.body.figma_link; // Use correct key
-      if (req.file) links.file = `/uploads/${req.file.filename}`;
-
-      const updated = await updateSubmission(req.params.id, {
+      const updated = await updateSubmission(submission_id, {
         team_id: user.team_id,
         type: existingSubmission.type,
-        title: req.body.title || existingSubmission.title,
-        description: req.body.description || existingSubmission.description,
-        links: links, // Pass the updated links object
+        title: title || existingSubmission.title,
+        description: description || existingSubmission.description,
+        links: finalLinks,
       });
 
       res.status(200).json({ submission: updated });
