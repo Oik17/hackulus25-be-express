@@ -21,7 +21,7 @@ export async function getWindowByName(name) {
 
 export async function listWindows() {
     const res = await pool.query(
-        `SELECT * FROM submission_windows ORDER BY id`
+        `SELECT * FROM submission_windows ORDER BY window_id`
     );
     return res.rows;
 }
