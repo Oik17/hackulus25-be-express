@@ -1,5 +1,5 @@
 
--- run only after your schema created.
+-- run only after schema created
 
 -- tracks
 INSERT INTO tracks (name, description, problem_statement) VALUES
@@ -113,4 +113,4 @@ INSERT INTO reviews (submission_id, judge_id, score, comments) VALUES
 INSERT INTO token_blacklist (token) VALUES ('abc-123-xyz-456') ON CONFLICT DO NOTHING;
 INSERT INTO token_blacklist (token) VALUES ('def-789-uvw-012') ON CONFLICT DO NOTHING;
 
--- event_status already has row inserted by schema, leave as is.
+-- event_status already has row inserted by schema, leave as is

@@ -7,10 +7,9 @@ dotenv.config();
 
 const envSchema = Joi.object({
   PORT: Joi.number().port().default(4000),
-  DATABASE_URL: Joi.string().uri().required(),
   JWT_SECRET: Joi.string().required(),
   UPLOAD_DIR: Joi.string().default("uploads"),
-}).unknown(); // allow other env vars
+}).unknown();
 
 const { error, value: env } = envSchema.validate(process.env);
 if (error) {

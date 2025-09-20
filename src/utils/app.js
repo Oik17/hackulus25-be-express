@@ -12,6 +12,7 @@ import adminRoutes from "../routes/admin.js";
 import authRoutes from "../routes/auth.js";
 import userRoutes from "../routes/users.js";
 import * as Sentry from "@sentry/node";
+import { query } from "./db.js"; // fixed import path (db is in src/utils)
 
 dotenv.config();
 
@@ -48,6 +49,21 @@ app.use("/uploads", express.static(uploadPath));
 // root
 app.get("/", (_req, res) => {
   res.json({ message: "hackulus backend running" });
+});
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+// db keepalive
+app.get("/db-ping", async (_req, res) => {
+  try {
+    await query("SELECT 1");
+    res.json({ status: "db alive" });
+  } catch (err) {
+    console.error("DB ping failed:", err);
+    res.status(500).json({ status: "db error" });
+  }
 });
 
 // test Sentry
