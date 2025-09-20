@@ -2,6 +2,9 @@ import db from "../utils/db.js";
 import * as scheduler from "../utils/scheduler.js";
 import { listWindows, upsertWindow } from "../models/submissionWindowModel.js";
 import Joi from "joi";
+import Redis from "ioredis";
+
+const redis = new Redis(process.env.REDIS_URL);
 
 async function getMembers(team_id) {
   const r = await db.query(
