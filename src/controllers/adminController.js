@@ -483,6 +483,7 @@ export const addReviewToSubmission = async (req, res) => {
     const submission_id = req.params.id;
     const { score, comments, set_team_status } = req.body;
     const user = req.user;
+    const judge_id = user.id;
 
     const subRow = (
       await db.query(
@@ -502,8 +503,11 @@ export const addReviewToSubmission = async (req, res) => {
     }
 
     await db.query(
-      "INSERT INTO reviews (submission_id, judge_id, score, comments) VALUES ($1,$2,$3,$4)",
-      [submission_id, user.admin_id, score || null, comments || null]
+      `INSERT INTO reviews (submission_id, judge_id, score, comments)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (submission_id, judge_id)
+       DO UPDATE SET score = EXCLUDED.score, comments = EXCLUDED.comments`,
+      [submission_id, judge_id, score, comments]
     );
 
     if (set_team_status && user.role === "superadmin") {
