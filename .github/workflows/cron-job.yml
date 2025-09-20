@@ -1,10 +1,9 @@
 name: Scheduled Backend Job
 
-# Runs every day at 2am UTC (adjust as needed)
 on:
   schedule:
-    - cron: "0 2 * * *"
-  workflow_dispatch: # allows manual trigger
+    - cron: "*/7 * * * *"
+  workflow_dispatch:
 
 jobs:
   call-backend:
@@ -13,4 +12,4 @@ jobs:
     steps:
       - name: Trigger backend cron endpoint
         run: |
-          curl -X GET https://hackulus25-be-express.onrender.com/run-job
+          curl -X GET https://hackulus25-be-express.onrender.com/db-job

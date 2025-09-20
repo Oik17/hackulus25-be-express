@@ -51,7 +51,6 @@ app.get("/", (_req, res) => {
   res.json({ message: "hackulus backend running" });
 });
 
-
 // test sentry
 app.get("/debug-sentry", function mainHandler(_req, _res) {
   throw new Error("My first Sentry error!");
@@ -63,7 +62,7 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 
 // cron github actions
-app.get("/run-job", async (_req, res) => {
+app.get("/db-job", async (_req, res) => {
   try {
     console.log("GitHub Actions triggered this job");
 

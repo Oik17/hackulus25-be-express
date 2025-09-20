@@ -1,10 +1,6 @@
 import db from "../utils/db.js";
 import * as scheduler from "../utils/scheduler.js";
-import {
-  listWindows,
-  upsertWindow,
-  getWindowByName,
-} from "../models/submissionWindowModel.js";
+import { listWindows, upsertWindow } from "../models/submissionWindowModel.js";
 import Joi from "joi";
 
 async function getMembers(team_id) {
@@ -109,7 +105,10 @@ export const runAutoPanelAssignment = async (req, res) => {
     const teamsRes = await db.query(
       "SELECT team_id, track_id FROM teams ORDER BY created_at ASC"
     );
-    const teams = teamsRes.rows.map(({ team_id, track_id }) => ({ team_id, track_id }));
+    const teams = teamsRes.rows.map(({ team_id, track_id }) => ({
+      team_id,
+      track_id,
+    }));
 
     const assignments = scheduler.assignPanelsToTeams(panels, teams);
 
@@ -155,38 +154,43 @@ export const listTeams = async (req, res) => {
         .json({ error: queryErr.details.map((d) => d.message).join(", ") });
 
     const { track_id, panel_id, status } = req.query;
+    const loggedInUser = req.user;
     const conditions = [];
     const params = [];
+    if (loggedInUser.role === "judge" && loggedInUser.panel_id) {
+      params.push(loggedInUser.panel_id);
+      conditions.push(`t.panel_id = $${params.length}`);
+    } else if (panel_id) {
+      params.push(panel_id);
+      conditions.push(`t.panel_id = $${params.length}`);
+    }
+
     if (track_id) {
       params.push(track_id);
-      conditions.push(`track_id = $${params.length}`);
+      conditions.push(`t.track_id = $${params.length}`);
     }
-    if (panel_id) {
-      params.push(panel_id);
-      conditions.push(`panel_id = $${params.length}`);
-    }
+
     if (status) {
       params.push(status);
-      conditions.push(`status = $${params.length}`);
+      conditions.push(`t.status = $${params.length}`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const q = `
-     SELECT 
-       t.*, 
-       tr.name as track_name,
-       (SELECT json_agg(u) FROM 
-         (SELECT user_id, name, email, is_leader FROM users WHERE team_id = t.team_id) u
-       ) as members
-     FROM teams t
-     LEFT JOIN tracks tr ON t.track_id = tr.track_id
-     ${where} 
-     ORDER BY t.created_at DESC
-   `;
+      SELECT 
+        t.*, 
+        tr.name as track_name,
+        (SELECT json_agg(u) FROM 
+          (SELECT user_id, name, email, is_leader FROM users WHERE team_id = t.team_id) u
+        ) as members
+      FROM teams t
+      LEFT JOIN tracks tr ON t.track_id = tr.track_id
+      ${where} 
+      ORDER BY t.created_at DESC
+    `;
     const r = await db.query(q, params);
-    res.json({ teams: r.rows });
 
-    res.json({ teams: out });
+    res.json({ teams: r.rows });
   } catch (err) {
     console.error("listTeams err", err);
     res.status(500).json({ error: "server error" });
@@ -575,6 +579,31 @@ export const setHackathonPhase = async (req, res) => {
       "UPDATE event_status SET current_phase=$1 WHERE id=1 RETURNING *",
       [phase]
     );
+    if (phase === "Review 1") {
+      await Promise.all([
+        upsertWindow({ name: "review1", open: true }),
+        upsertWindow({ name: "review2", open: false }),
+        upsertWindow({ name: "final", open: false }),
+      ]);
+    } else if (phase === "Review 2") {
+      await Promise.all([
+        upsertWindow({ name: "review1", open: false }),
+        upsertWindow({ name: "review2", open: true }),
+        upsertWindow({ name: "final", open: false }),
+      ]);
+    } else if (phase === "Final Review") {
+      await Promise.all([
+        upsertWindow({ name: "review1", open: false }),
+        upsertWindow({ name: "review2", open: false }),
+        upsertWindow({ name: "final", open: true }),
+      ]);
+    } else {
+      await Promise.all([
+        upsertWindow({ name: "review1", open: false }),
+        upsertWindow({ name: "review2", open: false }),
+        upsertWindow({ name: "final", open: false }),
+      ]);
+    }
 
     res.json({ ok: true, phase: result.rows[0].current_phase });
   } catch (err) {
