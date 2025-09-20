@@ -16,6 +16,7 @@ router.get("/teams", adminCtrl.listTeams);
 router.get("/team/:id", adminCtrl.getTeamDetail);
 router.get("/submissions", adminCtrl.listSubmissions);
 router.get("/submission/:id", adminCtrl.getSubmissionDetail);
+router.get("/timeline/phase", adminCtrl.getHackathonPhase);
 
 // assign panel manually, requires a JSON input with panel_id and team_id
 router.post("/panel/assign", auth.requireSuperAdmin, async (req, res, next) => {

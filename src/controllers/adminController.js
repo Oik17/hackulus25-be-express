@@ -631,3 +631,16 @@ export const getAdminProfile = async (req, res) => {
     res.status(500).json({ error: "server error" });
   }
 };
+
+export const getHackathonPhase = async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT current_phase FROM event_status WHERE id=1"
+    );
+    const currentPhase = result.rows[0]?.current_phase || "Participants reach";
+    res.json({ currentPhase });
+  } catch (err) {
+    console.error("getHackathonPhase err", err);
+    res.status(500).json({ error: "server error" });
+  }
+};
