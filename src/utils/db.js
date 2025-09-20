@@ -8,7 +8,11 @@ const { Pool } = pkg;
 
 // env validate
 const envSchema = Joi.object({
-  DATABASE_URL: Joi.string().uri().required()
+  DB_HOSTNAME: Joi.string().required(),
+  DB_PORT: Joi.number().default(5432),
+  DB_DATABASE: Joi.string().required(),
+  DB_USERNAME: Joi.string().required(),
+  DB_PASSWORD: Joi.string().required(),
 }).unknown(true); // allow other env vars
 
 const { error, value } = envSchema.validate(process.env);
@@ -18,7 +22,11 @@ if (error) {
 }
 
 const pool = new Pool({
-  connectionString: value.DATABASE_URL,
+  host: value.DB_HOSTNAME,
+  user: value.DB_USERNAME,
+  password: value.DB_PASSWORD,
+  database: value.DB_DATABASE,
+  port: value.DB_PORT,
 });
 
 pool.on("error", (err) => {
