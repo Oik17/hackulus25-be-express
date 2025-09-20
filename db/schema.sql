@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS tracks (
   track_id SERIAL PRIMARY KEY,
   name VARCHAR(120) NOT NULL UNIQUE,
   description TEXT,
-  problem_statement TEXT, 
+  problem_statement TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
   team_id INTEGER REFERENCES teams(team_id) ON DELETE SET NULL,
   is_leader BOOLEAN DEFAULT FALSE,
   extra_info JSONB,
+  hostel_block VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -56,12 +57,12 @@ CREATE TABLE IF NOT EXISTS submissions (
   title VARCHAR(255),
   description TEXT,
   links JSONB,
+  file_url TEXT,
   status VARCHAR(50) DEFAULT 'pending',   -- submitted, pending
   review_round SMALLINT DEFAULT 0,        -- 0 is no review, 1 = review1, 2 = review2
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
-
 
 CREATE TABLE IF NOT EXISTS reviews (
   review_id SERIAL PRIMARY KEY,
@@ -73,18 +74,40 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 CREATE TABLE IF NOT EXISTS token_blacklist (
-    id SERIAL PRIMARY KEY,
-    token TEXT NOT NULL,
-    blacklisted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  id SERIAL PRIMARY KEY,
+  token TEXT NOT NULL,
+  blacklisted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- for review sessions
+CREATE TABLE IF NOT EXISTS submission_windows (
+  window_id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE, -- review1, review2, final
+  open BOOLEAN NOT NULL DEFAULT false,
+  start_at TIMESTAMP WITH TIME ZONE NULL,
+  end_at TIMESTAMP WITH TIME ZONE NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS event_status (
-  id SERIAL PRIMARY KEY,
-  current_phase VARCHAR(100) NOT NULL DEFAULT 'Participants reach'
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  current_phase VARCHAR(100) NOT NULL DEFAULT 'Participants reach',
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
-INSERT INTO event_status (id, current_phase) VALUES (1, 'Participants reach')
+-- base seed
+INSERT INTO submission_windows (name, open)
+VALUES
+  ('review1', false),
+  ('review2', false),
+  ('final', false)
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO event_status (id, current_phase)
+VALUES (1, 'Participants reach')
 ON CONFLICT (id) DO NOTHING;
+
 
 CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_team_id ON submissions(team_id);
@@ -92,3 +115,6 @@ CREATE INDEX IF NOT EXISTS idx_reviews_submission_id ON reviews(submission_id);
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins(email);
+
+CREATE INDEX IF NOT EXISTS idx_submission_windows_name ON submission_windows (name);
+CREATE INDEX IF NOT EXISTS idx_users_hostel_block ON users(hostel_block);
