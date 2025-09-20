@@ -13,7 +13,7 @@ const pool = new Pool({
 // Admin data and panel assignments remain the same
 const admins = [
   { email: "rishab.nagwani2023@vitstudent.ac.in", roll: "23BAI0085" },
-  { email: "aryan.vinod2023@vitstudent.ac.in", roll: "23BAI0085" },
+  { email: "aryan.vinod2023@vitstudent.ac.in", roll: "23BIT0116" },
   { email: "nainika.anish2023@vitstudent.ac.in", roll: "23BCT0047" },
   { email: "simran.rawat2023@vitstudent.ac.in", roll: "23BAI0090" },
   { email: "janakipillai.raghav2023@vitstudent.ac.in", roll: "23BCE0806" },
