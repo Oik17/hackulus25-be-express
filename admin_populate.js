@@ -1,4 +1,3 @@
-// seedAdmins.js
 import pkg from "pg";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
@@ -7,15 +6,11 @@ dotenv.config();
 const { Pool } = pkg;
 const SALT_ROUNDS = 10;
 
-// --- configure your DB connection (from .env recommended) ---
 const pool = new Pool({
-  user: process.env.DB_USER || "YOUR_USER",
-  host: process.env.DB_HOST || "YOUR_HOST",
-  database: process.env.DB_NAME || "YOUR_DATABASE",
-  password: process.env.DB_PASS || "YOUR_PASSWORD",
-  port: process.env.DB_PORT || 5432,
+  connectionString: process.env.DATABASE_URL,
 });
 
+// Admin data and panel assignments remain the same
 const admins = [
   { email: "rishab.nagwani2023@vitstudent.ac.in", roll: "23BAI0085" },
   { email: "aryan.vinod2023@vitstudent.ac.in", roll: "23BAI0085" },
@@ -31,10 +26,9 @@ const admins = [
   { email: "ruhirohit.adke2023@vitstudent.ac.in", roll: "23MMI0004" },
 ];
 
-// panel assignments
 const panelMap = {
   "rishab.nagwani": 1,
-  "aryan.deshpande": 2, // per your request
+  "aryan.vinod": 2,
   "aaryan.shrivastav": 3,
   "nainika.anish": 4,
 };
@@ -49,39 +43,93 @@ function formatName(email) {
     .join(" ");
 }
 
+// ===================================================================
+// NEW FUNCTION TO SEED PANELS
+// ===================================================================
+async function seedPanels(client) {
+  console.log("⚠  Deleting existing panels...");
+  // TRUNCATE panels as well
+  await client.query("TRUNCATE TABLE panels RESTART IDENTITY CASCADE");
+
+  console.log("⚡ Inserting new panels...");
+  const tracksResult = await client.query(
+    "SELECT track_id FROM tracks ORDER BY track_id"
+  );
+  const trackIds = tracksResult.rows.map((row) => row.track_id);
+
+  if (trackIds.length < 7) {
+    throw new Error(
+      "Not enough tracks in the database to assign to panels. Please run the track import script first."
+    );
+  }
+
+  // Panel 1: Tracks 1, 2
+  await client.query(
+    "INSERT INTO panels (name, track_id) VALUES ($1, $2), ($1, $3)",
+    ["Panel 1", trackIds[0], trackIds[1]]
+  );
+  // Panel 2: Tracks 3, 4
+  await client.query(
+    "INSERT INTO panels (name, track_id) VALUES ($1, $2), ($1, $3)",
+    ["Panel 2", trackIds[2], trackIds[3]]
+  );
+  // Panel 3: Tracks 5, 6
+  await client.query(
+    "INSERT INTO panels (name, track_id) VALUES ($1, $2), ($1, $3)",
+    ["Panel 3", trackIds[4], trackIds[5]]
+  );
+  // Panel 4: Track 7
+  await client.query("INSERT INTO panels (name, track_id) VALUES ($1, $2)", [
+    "Panel 4",
+    trackIds[6],
+  ]);
+
+  console.log("✅ Panels created and tracks assigned successfully!");
+}
+// ===================================================================
+
 async function seedAdmins() {
   const client = await pool.connect();
 
   try {
+    // UPDATED: Start a transaction
+    await client.query("BEGIN");
+
+    // STEP 1: Seed the panels first. This will throw an error if it fails.
+    await seedPanels(client);
+
+    // STEP 2: Proceed with seeding admins
     console.log("⚠  Deleting existing admins...");
-    // Delete all rows and reset sequence
     await client.query("TRUNCATE TABLE admins RESTART IDENTITY CASCADE");
 
     console.log("⚡ Inserting new admins...");
     for (const admin of admins) {
       const email = admin.email;
-      const roll = admin.roll; // plain password
+      const roll = admin.roll;
       const prefix = email.split("@")[0].replace(/\d+/g, "");
       const panel_id = panelMap[prefix] || null;
       const name = formatName(email);
 
-      // hash password
       const hashedPassword = await bcrypt.hash(roll, SALT_ROUNDS);
 
       await client.query(
         `INSERT INTO admins (name, email, password_hash, panel_id, role)
          VALUES ($1, $2, $3, $4, $5)`,
-        [name, email, hashedPassword, panel_id, "admin"]
+        [name, email, hashedPassword, panel_id, "judge"]
       );
 
       console.log(
-        ✅ Inserted: ${name} (${email}) → Plain: ${roll} | Hashed: ${hashedPassword}
+        `✅ Inserted: ${name} (${email}) → Panel: ${panel_id || "N/A"}`
       );
     }
 
-    console.log("🎉 Admin seeding completed successfully!");
+    // If all steps succeeded, commit the transaction
+    await client.query("COMMIT");
+    console.log("🎉 Full seeding completed successfully!");
   } catch (err) {
-    console.error("❌ Error inserting admins:", err);
+    // If any step failed, roll back all changes
+    await client.query("ROLLBACK");
+    console.error("❌ Error during seeding process:", err);
   } finally {
     client.release();
     pool.end();
