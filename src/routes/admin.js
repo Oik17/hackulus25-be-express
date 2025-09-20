@@ -77,21 +77,7 @@ router.post(
 );
 
 // add review to submission
-router.post("/submission/:id/review", async (req, res, next) => {
-  const schema = Joi.object({
-    review: Joi.string().min(1).required(),
-    score: Joi.number().min(0).max(100).optional(),
-  });
-  const { error } = schema.validate(req.body, {
-    abortEarly: false,
-    allowUnknown: true,
-  });
-  if (error)
-    return res
-      .status(400)
-      .json({ message: error.details.map((d) => d.message).join(", ") });
-  return adminCtrl.addReviewToSubmission(req, res, next);
-});
+router.post("/submission/:id/review", adminCtrl.addReviewToSubmission);
 
 // submission windows (superadmin)
 router.get(
