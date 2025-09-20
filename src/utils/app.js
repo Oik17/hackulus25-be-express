@@ -12,7 +12,7 @@ import adminRoutes from "../routes/admin.js";
 import authRoutes from "../routes/auth.js";
 import userRoutes from "../routes/users.js";
 import * as Sentry from "@sentry/node";
-import { query } from "./db.js"; // fixed import path (db is in src/utils)
+import { query } from "./db.js";
 
 dotenv.config();
 
@@ -51,22 +51,8 @@ app.get("/", (_req, res) => {
   res.json({ message: "hackulus backend running" });
 });
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
 
-// db keepalive
-app.get("/db-ping", async (_req, res) => {
-  try {
-    await query("SELECT 1");
-    res.json({ status: "db alive" });
-  } catch (err) {
-    console.error("DB ping failed:", err);
-    res.status(500).json({ status: "db error" });
-  }
-});
-
-// test Sentry
+// test sentry
 app.get("/debug-sentry", function mainHandler(_req, _res) {
   throw new Error("My first Sentry error!");
 });
@@ -76,6 +62,21 @@ app.use("/admin", adminRoutes);
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 
+// cron github actions
+app.get("/run-job", async (_req, res) => {
+  try {
+    console.log("GitHub Actions triggered this job");
+
+    await query("SELECT 1");
+
+    res.status(200).json({ success: true, message: "Executed" });
+  } catch (err) {
+    console.error("Job failed:", err);
+    res.status(500).json({ success: false, message: "Failed" });
+  }
+});
+
+// sentry error handler
 app.use(Sentry.expressErrorHandler());
 
 // custom error handler
