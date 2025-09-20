@@ -611,3 +611,23 @@ export const setHackathonPhase = async (req, res) => {
     res.status(500).json({ error: "server error" });
   }
 };
+
+export const getAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    const result = await db.query(
+      "SELECT admin_id as user_id, name, email, role, panel_id FROM admins WHERE admin_id = $1",
+      [adminId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    console.error("getAdminProfile err", err);
+    res.status(500).json({ error: "server error" });
+  }
+};

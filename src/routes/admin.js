@@ -9,6 +9,7 @@ router.use(auth.verifyToken);
 router.use(auth.requireAdmin);
 
 // GET routes
+router.get("/me", adminCtrl.getAdminProfile);
 router.get("/panels", adminCtrl.listPanels);
 router.get("/panel/:id/teams", adminCtrl.getPanelTeams);
 router.get("/teams", adminCtrl.listTeams);
