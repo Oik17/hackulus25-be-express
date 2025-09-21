@@ -31,6 +31,14 @@ const panelMap = {
   "aryan.vinod": 2,
   "aaryan.shrivastav": 3,
   "nainika.anish": 4,
+  "simran.rawat": 5,
+  "janakipillai.raghav": 6,
+  "hitakshi.sardana": 7,
+  "suhani.singh": 1,
+  "priyanshu.kumar": 2,
+  "saanvi.devendra": 3,
+  "akriti.agarwal": 4,
+  "ruhirohit.adke": 5,
 };
 
 function formatName(email) {
