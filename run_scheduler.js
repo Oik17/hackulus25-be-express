@@ -26,7 +26,7 @@ function assignPanelsToTeams(panels, teams) {
   if (panels.length === 0)
     throw new Error("No panels available to assign teams to.");
 
-  // Simple round-robin assignment for standalone script
+  // simple roundrobin assignment for standalone script
   const assignments = teams.map((team, index) => {
     const panelIndex = index % panels.length;
     const assignedPanel = panels[panelIndex];
@@ -36,24 +36,22 @@ function assignPanelsToTeams(panels, teams) {
   return assignments;
 }
 
-// --- Standalone Script Execution ---
-
+// standalone script execute
 async function runScript() {
-  console.log("⚡ Starting panel assignment script...");
+  console.log("Starting panel assignment script...");
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
   });
 
   const client = await pool.connect();
-  console.log("✅ Successfully connected to the database.");
+  console.log(" Successfully connected to the database.");
 
   try {
-    // Start a database transaction
     await client.query("BEGIN");
     console.log("Fetching panels and teams from the database...");
 
-    // 1. Fetch all panels
+    // Fetch all panels
     const panelsRes = await client.query(
       "SELECT panel_id FROM panels ORDER BY panel_id"
     );
@@ -64,13 +62,13 @@ async function runScript() {
       );
     }
 
-    // 2. Fetch all teams that don't have a panel yet
+    // Fetch all teams that don't have panel yet
     const teamsRes = await client.query(
       "SELECT team_id, track_id FROM teams WHERE panel_id IS NULL ORDER BY created_at ASC"
     );
     const teams = teamsRes.rows;
     if (!teams.length) {
-      console.log("✅ No teams found that need panel assignment. Exiting.");
+      console.log("No teams found that need panel assignment. Exiting.");
       return;
     }
 
@@ -78,11 +76,11 @@ async function runScript() {
       `Found ${panels.length} panels and ${teams.length} teams to assign.`
     );
 
-    // 3. Run the assignment logic
+    // Run assignment logic
     const assignments = assignPanelsToTeams(panels, teams);
-    console.log("🤖 Generated panel assignments...");
+    console.log(" Generated panel assignments...");
 
-    // 4. Update the teams table with the new panel_id
+    // Update teams table with the new panel_id
     for (const { team_id, panel_id } of assignments) {
       await client.query("UPDATE teams SET panel_id = $1 WHERE team_id = $2", [
         panel_id,
@@ -90,25 +88,22 @@ async function runScript() {
       ]);
     }
 
-    // If everything succeeded, commit the changes
+    // If succeeded, commit changes
     await client.query("COMMIT");
     console.log(
-      `🎉 Successfully assigned ${assignments.length} teams to panels!`
+      `Successfully assigned ${assignments.length} teams to panels!`
     );
   } catch (err) {
-    // If any step failed, roll back all changes
     await client.query("ROLLBACK");
     console.error(
-      "❌ An error occurred. Rolling back all database changes.",
+      " An error occurred. Rolling back all database changes.",
       err
     );
   } finally {
-    // Always release the client and end the pool connection
     client.release();
     await pool.end();
-    console.log("🔌 Database connection closed.");
+    console.log(" Database connection closed.");
   }
 }
 
-// Run the script
 runScript();
