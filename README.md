@@ -5,9 +5,6 @@
   <h3 align="center">Hackulus'25 Backend</h3>
 
   <p align="center">
-    <a href="https://github.com/orgs/SIAM-VIT/repositories?q=hackulus"><strong>Explore other Hackulus repositories</strong></a>
-    <br />
-    <br />
     <a href="https://github.com/SIAM-VIT/hackulus25-be-express/issues">Report Bug</a>
     ·
     <a href="https://hackulus25-be-express.onrender.com">Live Deployment</a>
